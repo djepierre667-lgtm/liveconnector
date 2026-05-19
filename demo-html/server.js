@@ -13,6 +13,7 @@ app.get('/', (req, res) => {
 });
 
 let tiktokLiveConnection;
+let currentUsername = null;
 
 io.on('connection', (socket) => {
     console.log('Un client est connecté');
@@ -21,9 +22,12 @@ io.on('connection', (socket) => {
         // Déconnexion précédente si existe
         if (tiktokLiveConnection) {
             tiktokLiveConnection.disconnect();
+            tiktokLiveConnection = null;
+            currentUsername = null;
         }
 
         console.log(`Connexion au live de : ${username}`);
+        currentUsername = username;
         
         // Initialisation de la connexion TikTok
         tiktokLiveConnection = new WebcastPushConnection(username);
@@ -34,6 +38,8 @@ io.on('connection', (socket) => {
         }).catch((err) => {
             console.error('Erreur de connexion', err);
             socket.emit('error', 'Impossible de rejoindre ce live (vérifiez le nom d\'utilisateur).');
+            tiktokLiveConnection = null;
+            currentUsername = null;
         });
 
         // Événement : Nouveau Commentaire
@@ -70,6 +76,25 @@ io.on('connection', (socket) => {
                 likeCount: data.likeCount
             });
         });
+    });
+
+    socket.on('disconnectLive', () => {
+        if (tiktokLiveConnection) {
+            tiktokLiveConnection.disconnect();
+            tiktokLiveConnection = null;
+            currentUsername = null;
+            console.log('Déconnecté du live');
+            socket.emit('disconnected');
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client déconnecté');
+        if (tiktokLiveConnection) {
+            tiktokLiveConnection.disconnect();
+            tiktokLiveConnection = null;
+            currentUsername = null;
+        }
     });
 });
 
