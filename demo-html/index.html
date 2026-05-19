@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TikTok Live Viewer</title>
+    <style>
+        body { font-family: sans-serif; background: #222; color: white; text-align: center; }
+        #container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        input { padding: 10px; width: 70%; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #fe2c55; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #e0264b; }
+        #log { margin-top: 20px; background: #333; height: 400px; overflow-y: scroll; text-align: left; padding: 10px; border-radius: 5px; }
+        .msg { margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 2px; }
+        .gift { color: #ffd700; font-weight: bold; }
+        .sub { color: #00f2ea; font-weight: bold; }
+        .like { color: #ff6b6b; font-weight: bold; }
+        #status { margin-top: 10px; font-style: italic; color: #aaa; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Moniteur TikTok Live</h1>
+        <input type="text" id="username" placeholder="Nom d'utilisateur TikTok (sans @)">
+        <button onclick="startLive()">Rejoindre</button>
+        <div id="status"></div>
+        <div id="log"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const logDiv = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+
+        function addLog(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            logDiv.prepend(div); // Ajoute en haut
+        }
+
+        function startLive() {
+            const username = document.getElementById('username').value.trim();
+            if(username) {
+                statusDiv.innerText = "Connexion en cours...";
+                logDiv.innerHTML = ''; // Vider l'ancien chat
+                socket.emit('joinLive', username);
+            } else {
+                alert("Veuillez entrer un nom d'utilisateur");
+            }
+        }
+
+        socket.on('connected', (msg) => {
+            statusDiv.innerText = msg;
+            statusDiv.style.color = "#00f2ea";
+        });
+
+        socket.on('error', (msg) => {
+            statusDiv.innerText = msg;
+            statusDiv.style.color = "#ff6b6b";
+        });
+
+        socket.on('chat', (data) => {
+            addLog(`<span class="msg"><strong style="color:#aaa">${data.user}:</strong> ${data.message}</span>`);
+        });
+
+        socket.on('gift', (data) => {
+            addLog(`<span class="gift">🎁 ${data.user} a envoyé ${data.giftName} x${data.repeatCount}</span>`);
+        });
+
+        socket.on('subscribe', (data) => {
+            addLog(`<span class="sub">❤️ ${data.user} s'est abonné(e) !</span>`);
+        });
+
+        socket.on('like', (data) => {
+            addLog(`<span class="like">👍 ${data.user} a liké (${data.likeCount} likes)</span>`);
+        });
+    </script>
+</body>
+</html>
